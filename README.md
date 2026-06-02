@@ -44,6 +44,70 @@ This guide may help if you searched for:
 
 ---
 
+## Quick Fix (TL;DR)
+
+If you have already:
+
+* Disabled Hyper-V
+* Disabled Virtual Machine Platform
+* Disabled Windows Hypervisor Platform
+* Disabled Memory Integrity
+
+but Windows still reports:
+
+```text
+A hypervisor has been detected.
+```
+
+and VMware still reports:
+
+```text
+Virtualized AMD-V/RVI is not supported on this platform.
+```
+
+then check whether the Secure Kernel is still active.
+
+Run:
+
+```powershell
+Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object HypervisorPresent
+```
+
+If the result is:
+
+```text
+True
+```
+
+disable the remaining Device Guard scenarios:
+
+```cmd
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SystemGuard" /v Enabled /t REG_DWORD /d 0 /f
+
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SecureBiometrics" /v Enabled /t REG_DWORD /d 0 /f
+```
+
+Reboot:
+
+```cmd
+shutdown /r /t 0
+```
+
+Verify:
+
+```powershell
+Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object HypervisorPresent
+```
+
+Expected:
+
+```text
+False
+```
+
+If successful, VMware nested virtualization should function normally again.
+
+
 ## Solves These Errors
 
 ### VMware Workstation
@@ -415,6 +479,30 @@ Verify HypervisorPresent = False
 ```
 
 ---
+
+## Investigation Summary
+
+This issue was investigated on a Windows 11 Pro Build 26200 system running VMware Workstation Pro 17.6.4 on AMD Ryzen AI hardware.
+
+Initial troubleshooting included:
+
+* Hyper-V removal
+* Virtual Machine Platform removal
+* Windows Hypervisor Platform removal
+* Memory Integrity disabled
+* Device Guard disabled
+* hypervisorlaunchtype set to Off
+
+Despite these actions, Windows continued reporting:
+
+```text
+A hypervisor has been detected
+```
+
+Further analysis revealed that System Guard and Secure Biometrics were still allowing the Secure Kernel to remain active.
+
+Disabling those components and rebooting restored full AMD-V/RVI nested virtualization support for VMware Workstation.
+
 
 ## References
 
