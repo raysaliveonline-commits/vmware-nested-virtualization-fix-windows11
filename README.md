@@ -1,20 +1,48 @@
+# VMware Nested Virtualization Fix (Windows 11 + AMD Ryzen)
+
+> Resolving VMware Workstation nested virtualization failures caused by Hyper-V, VBS, Device Guard, System Guard, Secure Kernel, and Windows 11 security components.
+
+---
+
 ## ⚠️ Important Notice
 
 This guide disables certain Windows Virtualization-Based Security (VBS) components in order to restore full AMD-V/RVI nested virtualization support for VMware Workstation.
 
 Before making any changes:
 
-- Export the affected registry keys.
-- Create a Windows Restore Point.
-- Understand that disabling security features may reduce certain Windows protections.
-- This guide was validated on Windows 11 Build 26200 and AMD Ryzen AI hardware.
-- Test changes in a lab environment whenever possible.
+* Export the affected registry keys.
+* Create a Windows Restore Point.
+* Understand that disabling security features may reduce certain Windows protections.
+* Test changes in a lab environment whenever possible.
+* Review your organization's security policies before applying these changes on corporate devices.
 
-If this is a production, corporate, or security-managed device, consult your organization's security policy before applying these changes.
+This guide was validated on:
+
+* Windows 11 Pro Build 26200
+* VMware Workstation Pro 17.6.4
+* AMD Ryzen AI 9 HX 370
+* ASUS ROG Zephyrus G16
 
 ---
 
-# VMware Nested Virtualization Fix (Windows 11 + AMD Ryzen)
+## Common Search Terms
+
+This guide may help if you searched for:
+
+* VMware nested virtualization not working Windows 11
+* Virtualized AMD-V/RVI is not supported on this platform
+* A hypervisor has been detected VMware
+* VMware Hyper-V disabled still not working
+* EVE-NG AMD-V error VMware Workstation
+* ESXi nested virtualization Windows 11
+* GNS3 VM nested virtualization failure
+* HypervisorPresent True after disabling Hyper-V
+* VMware Workstation AMD Ryzen virtualization issues
+* Windows 11 VBS prevents VMware nested virtualization
+* Nested virtualization broken after Windows update
+* VMware nested ESXi AMD Ryzen fix
+
+---
 
 ## Solves These Errors
 
@@ -32,47 +60,45 @@ VMware Workstation does not support nested virtualization on this host.
 This host supports AMD-V, but AMD-V is disabled.
 ```
 
+```text
+Module 'HV' power on failed.
+```
+
 ### Windows
 
 ```text
-A hypervisor has been detected. Features required for Hyper-V will not be displayed.
+A hypervisor has been detected.
+Features required for Hyper-V will not be displayed.
 ```
 
 ---
 
-# Who Is This For?
+## Who Is This Guide For?
 
 This guide is intended for users running:
 
-- VMware Workstation Pro
-- EVE-NG
-- GNS3 VM
-- ESXi Nested Labs
-- Cisco Modeling Labs (CML)
-- KVM on Linux Guests
-- CCNP / CCIE Lab Environments
-
-especially on:
-
-- Windows 11
-- AMD Ryzen Systems
-- AMD Ryzen AI Systems
-- ASUS ROG Laptops
-- VMware Workstation 17.x
+* VMware Workstation Pro
+* EVE-NG
+* GNS3 VM
+* Nested ESXi Labs
+* Cisco Modeling Labs (CML)
+* KVM-based Linux Guests
+* CCNA, CCNP, and CCIE Lab Environments
+* Home Labs and Enterprise Test Labs
 
 ---
 
-# Symptoms
+## Symptoms
 
 You have already:
 
-- Disabled Hyper-V
-- Disabled Virtual Machine Platform
-- Disabled Windows Hypervisor Platform
-- Disabled Memory Integrity
-- Rebooted
+* Disabled Hyper-V
+* Disabled Virtual Machine Platform
+* Disabled Windows Hypervisor Platform
+* Disabled Memory Integrity
+* Rebooted multiple times
 
-But VMware still reports:
+Yet VMware still reports:
 
 ```text
 Virtualized AMD-V/RVI is not supported on this platform.
@@ -84,32 +110,11 @@ or
 A hypervisor has been detected.
 ```
 
----
-
-# Environment Used During Troubleshooting
-
-Hardware:
-
-```text
-ASUS ROG Zephyrus G16
-AMD Ryzen AI 9 HX 370
-32 GB RAM
-```
-
-Software:
-
-```text
-Windows 11 Pro Build 26200
-VMware Workstation Pro 17.6.4
-```
+and nested virtualization continues to fail.
 
 ---
 
-# Root Cause
-
-Although Hyper-V was disabled, Windows was still loading a Secure Kernel through:
-
-## Verified Working For
+## Environment Used During Troubleshooting
 
 ### Hardware
 
@@ -122,44 +127,73 @@ Although Hyper-V was disabled, Windows was still loading a Secure Kernel through
 * Windows 11 Pro Build 26200
 * VMware Workstation Pro 17.6.4
 
-### Tested Virtualization Workloads
+---
+
+## Verified Working For
+
+### Tested Nested Virtualization Workloads
 
 * EVE-NG
 * Nested ESXi
 * GNS3 VM
 * Cisco Modeling Labs (CML)
-* KVM-based Linux guests
+* KVM-based Linux Guests
 
-### Symptoms Successfully Resolved
+### Successfully Resolved Errors
 
 * Virtualized AMD-V/RVI is not supported on this platform
 * VMware Workstation does not support nested virtualization on this host
 * Module 'HV' power on failed
+* HypervisorPresent = True after Hyper-V was disabled
 * A hypervisor has been detected
-* Nested virtualization failures after disabling Hyper-V
 
+---
 
-```text
-System Guard
-```
+## Root Cause
 
-and
+Although Hyper-V was disabled, Windows continued loading a Secure Kernel through virtualization-based security components.
 
-```text
-Secure Biometrics
-```
-
-This caused Windows to continue reporting:
+Investigation revealed:
 
 ```text
 HypervisorPresent = True
 ```
 
-which prevented VMware from exposing AMD-V/RVI to nested guests.
+and:
+
+```text
+Virtualization-based security: Running
+```
+
+Even after:
+
+* Hyper-V disabled
+* Virtual Machine Platform disabled
+* Windows Hypervisor Platform disabled
+* Memory Integrity disabled
+* Hypervisor launch disabled
+
+Further investigation identified:
+
+```text
+SystemGuard Enabled = 1
+```
+
+and:
+
+```text
+SecureBiometrics Enabled = 1
+```
+
+These components were still causing Windows to launch the Secure Kernel, resulting in a hypervisor being loaded at boot.
+
+VMware therefore could not expose AMD-V/RVI to nested guests.
 
 ---
 
-# Step 1 - Verify Hypervisor Is Still Active
+## Troubleshooting Workflow
+
+### Step 1 – Verify Hypervisor Is Still Active
 
 Open PowerShell as Administrator:
 
@@ -167,7 +201,7 @@ Open PowerShell as Administrator:
 Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object HypervisorPresent
 ```
 
-If you see:
+If the result is:
 
 ```text
 True
@@ -177,9 +211,9 @@ continue with this guide.
 
 ---
 
-# Step 2 - Verify Hyper-V Components Are Disabled
+### Step 2 – Verify Hyper-V Components Are Disabled
 
-Run:
+Check Hyper-V:
 
 ```powershell
 Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
@@ -191,7 +225,7 @@ Expected:
 State : Disabled
 ```
 
-Run:
+Check Virtual Machine Platform:
 
 ```powershell
 Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
@@ -203,7 +237,7 @@ Expected:
 State : Disabled
 ```
 
-Run:
+Check Windows Hypervisor Platform:
 
 ```powershell
 Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform
@@ -217,7 +251,7 @@ State : Disabled
 
 ---
 
-# Step 3 - Disable Hypervisor Launch
+### Step 3 – Disable Hypervisor Launch
 
 Open CMD as Administrator:
 
@@ -241,15 +275,15 @@ Reboot.
 
 ---
 
-# Step 4 - Check Device Guard Scenarios
+### Step 4 – Investigate Device Guard Scenarios
 
-Open PowerShell:
+Run:
 
 ```cmd
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" /s
 ```
 
-If you discover:
+Look for:
 
 ```text
 SystemGuard Enabled = 1
@@ -261,11 +295,9 @@ or
 SecureBiometrics Enabled = 1
 ```
 
-continue.
-
 ---
 
-# Step 5 - Disable Remaining Secure Kernel Components
+### Step 5 – Disable Remaining Secure Kernel Components
 
 Open CMD or PowerShell as Administrator.
 
@@ -283,7 +315,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SecureBiome
 
 ---
 
-# Step 6 - Reboot Immediately
+### Step 6 – Reboot
 
 ```cmd
 shutdown /r /t 0
@@ -291,7 +323,7 @@ shutdown /r /t 0
 
 ---
 
-# Step 7 - Validate Fix
+### Step 7 – Validate
 
 Check:
 
@@ -319,57 +351,39 @@ No hypervisor detected
 
 ---
 
-# Step 8 - Launch VMware
+### Step 8 – Launch VMware
 
 Open VMware Workstation.
 
-For nested virtualization workloads:
-
-- EVE-NG
-- ESXi
-- GNS3 VM
-- Cisco Modeling Labs
-- KVM Guests
-
-verify that:
-
-```text
-Virtualize AMD-V/RVI
-```
-
-is enabled under:
+Verify:
 
 ```text
 VM Settings
 → Processors
+→ Virtualize AMD-V/RVI
 ```
 
-Power on the VM.
+is enabled.
+
+Power on:
+
+* EVE-NG
+* Nested ESXi
+* GNS3 VM
+* Cisco Modeling Labs
 
 Expected result:
 
 ```text
-VM boots successfully.
-Nested virtualization operational.
+VM boots successfully
+Nested virtualization operational
 ```
 
 ---
 
-# Troubleshooting Notes
+## TAC-Style Analysis
 
-If the issue persists:
-
-1. Upgrade VMware Workstation to the latest 17.6.x release.
-2. Verify SVM Mode is enabled in BIOS.
-3. Verify HypervisorPresent returns False.
-4. Verify Hyper-V, Virtual Machine Platform, and Hypervisor Platform remain disabled.
-5. Check BIOS for security features that may re-enable virtualization security.
-
----
-
-# TAC Summary
-
-Observation:
+### Observation
 
 ```text
 Hyper-V disabled
@@ -377,21 +391,21 @@ Hypervisor still detected
 VMware nested virtualization failing
 ```
 
-Technical Interpretation:
+### Technical Interpretation
 
 ```text
 Secure Kernel still running
-System Guard still active
+System Guard active
 Hypervisor remains loaded
 ```
 
-Root Cause:
+### Root Cause
 
 ```text
 Windows Secure Kernel launched through System Guard
 ```
 
-Resolution:
+### Resolution
 
 ```text
 Disable SystemGuard
@@ -402,6 +416,53 @@ Verify HypervisorPresent = False
 
 ---
 
-# Keywords
+## References
 
-VMware Workstation, AMD-V, RVI, Hyper-V, Nested Virtualization, Windows 11, Ryzen AI, ASUS ROG, EVE-NG, ESXi, GNS3, Cisco Modeling Labs, Device Guard, System Guard, Secure Kernel, Hypervisor Detected, VMware AMD-V Fix
+Relevant technologies involved:
+
+* VMware Workstation Pro
+* Microsoft Hyper-V
+* Virtualization-Based Security (VBS)
+* Device Guard
+* Credential Guard
+* System Guard
+* Secure Kernel (VTL1)
+
+Useful vendor documentation:
+
+* Microsoft Learn: Virtualization-Based Security
+* Microsoft Learn: Hyper-V Troubleshooting
+* VMware Workstation Documentation
+* VMware Nested Virtualization Documentation
+* Windows Device Guard Documentation
+
+---
+
+## Contributing
+
+If this guide helped resolve a similar issue on different hardware, feel free to open an Issue or Pull Request.
+
+Please include:
+
+* CPU model
+* Laptop or motherboard model
+* Windows build number
+* VMware version
+* Exact error message
+* Resolution steps
+
+Community validation helps improve troubleshooting accuracy for everyone.
+
+---
+
+## Repository Purpose
+
+This repository documents real-world VMware nested virtualization troubleshooting scenarios and provides repeatable fixes for engineers, students, lab builders, and enterprise virtualization administrators.
+
+The goal is to reduce time spent troubleshooting Hyper-V, VBS, Device Guard, System Guard, and AMD-V/RVI conflicts that prevent EVE-NG, ESXi, GNS3, and other nested virtualization workloads from running successfully on modern Windows 11 systems.
+
+---
+
+## Keywords
+
+VMware, VMware Workstation, Nested Virtualization, Windows 11, AMD Ryzen, AMD-V, RVI, Hyper-V, Device Guard, Credential Guard, System Guard, Secure Kernel, VBS, EVE-NG, ESXi, GNS3, Cisco Modeling Labs, CML, Home Lab, CCNP, CCIE, Virtualization, Hypervisor Detected
