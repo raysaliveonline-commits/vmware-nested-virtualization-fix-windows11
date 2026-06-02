@@ -1,3 +1,19 @@
+## ⚠️ Important Notice
+
+This guide disables certain Windows Virtualization-Based Security (VBS) components in order to restore full AMD-V/RVI nested virtualization support for VMware Workstation.
+
+Before making any changes:
+
+- Export the affected registry keys.
+- Create a Windows Restore Point.
+- Understand that disabling security features may reduce certain Windows protections.
+- This guide was validated on Windows 11 Build 26200 and AMD Ryzen AI hardware.
+- Test changes in a lab environment whenever possible.
+
+If this is a production, corporate, or security-managed device, consult your organization's security policy before applying these changes.
+
+---
+
 # VMware Nested Virtualization Fix (Windows 11 + AMD Ryzen)
 
 ## Solves These Errors
