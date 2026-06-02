@@ -109,6 +109,36 @@ VMware Workstation Pro 17.6.4
 
 Although Hyper-V was disabled, Windows was still loading a Secure Kernel through:
 
+## Verified Working For
+
+### Hardware
+
+* ASUS ROG Zephyrus G16 GA605WI
+* AMD Ryzen AI 9 HX 370
+* 32 GB RAM
+
+### Software
+
+* Windows 11 Pro Build 26200
+* VMware Workstation Pro 17.6.4
+
+### Tested Virtualization Workloads
+
+* EVE-NG
+* Nested ESXi
+* GNS3 VM
+* Cisco Modeling Labs (CML)
+* KVM-based Linux guests
+
+### Symptoms Successfully Resolved
+
+* Virtualized AMD-V/RVI is not supported on this platform
+* VMware Workstation does not support nested virtualization on this host
+* Module 'HV' power on failed
+* A hypervisor has been detected
+* Nested virtualization failures after disabling Hyper-V
+
+
 ```text
 System Guard
 ```
