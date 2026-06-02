@@ -27,23 +27,6 @@ This guide was validated on:
 
 ## Common Search Terms
 
-This guide may help if you searched for:
-
-* VMware nested virtualization not working Windows 11
-* Virtualized AMD-V/RVI is not supported on this platform
-* A hypervisor has been detected VMware
-* VMware Hyper-V disabled still not working
-* EVE-NG AMD-V error VMware Workstation
-* ESXi nested virtualization Windows 11
-* GNS3 VM nested virtualization failure
-* HypervisorPresent True after disabling Hyper-V
-* VMware Workstation AMD Ryzen virtualization issues
-* Windows 11 VBS prevents VMware nested virtualization
-* Nested virtualization broken after Windows update
-* VMware nested ESXi AMD Ryzen fix
-
----
-
 ## Quick Fix (TL;DR)
 
 If you have already:
@@ -52,6 +35,7 @@ If you have already:
 * Disabled Virtual Machine Platform
 * Disabled Windows Hypervisor Platform
 * Disabled Memory Integrity
+* Rebooted
 
 but Windows still reports:
 
@@ -65,9 +49,7 @@ and VMware still reports:
 Virtualized AMD-V/RVI is not supported on this platform.
 ```
 
-then check whether the Secure Kernel is still active.
-
-Run:
+run:
 
 ```powershell
 Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object HypervisorPresent
@@ -79,7 +61,25 @@ If the result is:
 True
 ```
 
-disable the remaining Device Guard scenarios:
+check Device Guard scenarios:
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" /s
+```
+
+If you find:
+
+```text
+SystemGuard Enabled = 1
+```
+
+or
+
+```text
+SecureBiometrics Enabled = 1
+```
+
+disable them:
 
 ```cmd
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SystemGuard" /v Enabled /t REG_DWORD /d 0 /f
@@ -93,7 +93,7 @@ Reboot:
 shutdown /r /t 0
 ```
 
-Verify:
+Validate:
 
 ```powershell
 Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object HypervisorPresent
@@ -106,7 +106,6 @@ False
 ```
 
 If successful, VMware nested virtualization should function normally again.
-
 
 ## Solves These Errors
 
